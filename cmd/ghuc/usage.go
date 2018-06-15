@@ -92,24 +92,24 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "HUCASH",
 		Flags: []cli.Flag{
-			utils.EthashCacheDirFlag,
-			utils.EthashCachesInMemoryFlag,
-			utils.EthashCachesOnDiskFlag,
-			utils.EthashDatasetDirFlag,
-			utils.EthashDatasetsInMemoryFlag,
-			utils.EthashDatasetsOnDiskFlag,
+			utils.HuchashCacheDirFlag,
+			utils.HuchashCachesInMemoryFlag,
+			utils.HuchashCachesOnDiskFlag,
+			utils.HuchashDatasetDirFlag,
+			utils.HuchashDatasetsInMemoryFlag,
+			utils.HuchashDatasetsOnDiskFlag,
 		},
 	},
-	//{
-	//	Name: "DASHBOARD",
-	//	Flags: []cli.Flag{
-	//		utils.DashboardEnabledFlag,
-	//		utils.DashboardAddrFlag,
-	//		utils.DashboardPortFlag,
-	//		utils.DashboardRefreshFlag,
-	//		utils.DashboardAssetsFlag,
-	//	},
-	//},
+	// {
+	// 	Name: "DASHBOARD",
+	// 	Flags: []cli.Flag{
+	// 		utils.DashboardEnabledFlag,
+	// 		utils.DashboardAddrFlag,
+	// 		utils.DashboardPortFlag,
+	// 		utils.DashboardRefreshFlag,
+	// 		utils.DashboardAssetsFlag,
+	// 	},
+	// },
 	{
 		Name: "TRANSACTION POOL",
 		Flags: []cli.Flag{

@@ -601,12 +601,6 @@ func (n *Node) Service(service interface{}) error {
 	return ErrServiceUnknown
 }
 
-// DataDir retrieves the current datadir used by the protocol stack.
-// Deprecated: No files should be stored in this directory, use InstanceDir instead.
-func (n *Node) DataDir() string {
-	return n.config.DataDir
-}
-
 // InstanceDir retrieves the instance directory used by the protocol stack.
 func (n *Node) InstanceDir() string {
 	return n.config.instanceDir()
@@ -675,9 +669,9 @@ func (n *Node) apis() []rpc.API {
 			Service:   NewPublicDebugAPI(n),
 			Public:    true,
 		}, {
-			Namespace: "web3",
+			Namespace: "webu",
 			Version:   "1.0",
-			Service:   NewPublicWeb3API(n),
+			Service:   NewPublicWebuAPI(n),
 			Public:    true,
 		},
 	}

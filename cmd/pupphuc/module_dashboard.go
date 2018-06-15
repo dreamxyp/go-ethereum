@@ -86,7 +86,7 @@ var dashboardContent = `
 										<ul id="connect_list" class="nav child_menu">
 											<li><a onclick="$('#connect_menu').removeClass('active'); $('#connect_list').toggle(); load('#ghuc')">Go HappyUC: Ghuc</a></li>
 											<li><a onclick="$('#connect_menu').removeClass('active'); $('#connect_list').toggle(); load('#mist')">Go HappyUC: Wallet & Mist</a></li>
-											<li><a onclick="$('#connect_menu').removeClass('active'); $('#connect_list').toggle(); load('#mobile')">Go HappyUC: Android & iOS</a></li>{{if .Ethash}}
+											<li><a onclick="$('#connect_menu').removeClass('active'); $('#connect_list').toggle(); load('#mobile')">Go HappyUC: Android & iOS</a></li>{{if .Huchash}}
 											<li><a onclick="$('#connect_menu').removeClass('active'); $('#connect_list').toggle(); load('#other')">Other HappyUC Clients</a></li>{{end}}
 										</ul>
 									</li>
@@ -177,7 +177,7 @@ var dashboardContent = `
 										<br/>
 										<p>To run an embedded node, download <a href="/{{.GhucGenesis}}"><code>{{.GhucGenesis}}</code></a> and start Ghuc with:
 											<pre>ghuc --datadir=$HOME/.{{.Network}} init {{.GhucGenesis}}</pre>
-											<pre>ghuc --networkid={{.NetworkID}} --datadir=$HOME/.{{.Network}} --cache=16 --ethash.cachesinmem=1 --syncmode=light{{if .Hucstats}} --hucstats='{{.Hucstats}}'{{end}} --bootnodes={{.BootnodesFlat}}</pre>
+											<pre>ghuc --networkid={{.NetworkID}} --datadir=$HOME/.{{.Network}} --cache=16 --huchash.cachesinmem=1 --syncmode=light{{if .Hucstats}} --hucstats='{{.Hucstats}}'{{end}} --bootnodes={{.BootnodesFlat}}</pre>
 										</p>
 										<br/>
 										<p>You can download Ghuc from <a href="https://happyuc.org/downloads/" target="about:blank">https://happyuc.org/downloads/</a>.</p>
@@ -222,7 +222,7 @@ var dashboardContent = `
 										<div class="clearfix"></div>
 									</div>
 									<div class="x_content">
-										<p>The Mist browser is an <a href="https://electron.atom.io/" target="about:blank">Electron</a> based desktop application to load and interact with HappyUC enabled third party web DApps. Beside all the functionality provided by the HappyUC Wallet, Mist is an extended web-browser where loaded pages have access to the HappyUC network via a web3.js provider, and may also interact with users' own accounts (given proper authorization and confirmation of course).</p>
+										<p>The Mist browser is an <a href="https://electron.atom.io/" target="about:blank">Electron</a> based desktop application to load and interact with HappyUC enabled third party web DApps. Beside all the functionality provided by the HappyUC Wallet, Mist is an extended web-browser where loaded pages have access to the HappyUC network via a webu.js provider, and may also interact with users' own accounts (given proper authorization and confirmation of course).</p>
 										<p>Under the hood the browser is backed by a happyuc-go full node, meaning that a mid range machine is assumed. Similarly, synchronization is based on <strong>fast-sync</strong>, which will download all blockchain data from the network and make it available to the wallet. Light nodes cannot currently fully back the wallet, but it's a target actively pursued.</p>
 										<br/>
 										<p>To connect with the Mist browser, you'll need to initialize your private network first via Ghuc as Mist does not currently support calling Ghuc directly. To initialize your local chain, download <a href="/{{.GhucGenesis}}"><code>{{.GhucGenesis}}</code></a> and run:
@@ -312,7 +312,7 @@ try! node?.start();
 								</div>
 							</div>
 						</div>
-					</div>{{if .Ethash}}
+					</div>{{if .Huchash}}
 					<div id="other" hidden style="padding: 16px;">
 						<div class="page-title">
 							<div class="title_left">
@@ -619,7 +619,7 @@ func deployDashboard(client *sshClient, network string, conf *config, config *da
 		"Bootnodes":        conf.bootnodes,
 		"BootnodesFlat":    strings.Join(conf.bootnodes, ","),
 		"Hucstats":         statsLogin,
-		"Ethash":           conf.Genesis.Config.Ethash != nil,
+		"Huchash":          conf.Genesis.Config.Huchash != nil,
 		"CppGenesis":       network + "-cpp.json",
 		"CppBootnodes":     strings.Join(bootCpp, " "),
 		"HarmonyGenesis":   network + "-harmony.json",
@@ -639,7 +639,7 @@ func deployDashboard(client *sshClient, network string, conf *config, config *da
 	genesis, _ := conf.Genesis.MarshalJSON()
 	files[filepath.Join(workdir, network+".json")] = genesis
 
-	if conf.Genesis.Config.Ethash != nil {
+	if conf.Genesis.Config.Huchash != nil {
 		cppSpec, err := newCppHappyUCGenesisSpec(network, conf.Genesis)
 		if err != nil {
 			return nil, err

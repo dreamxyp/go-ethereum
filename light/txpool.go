@@ -290,7 +290,7 @@ func (pool *TxPool) eventLoop() {
 			// be replaced by a subsequent PR.
 			time.Sleep(time.Millisecond)
 
-		// System stopped
+			// System stopped
 		case <-pool.chainHeadSub.Err():
 			return
 		}
@@ -369,20 +369,25 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 		return core.ErrNegativeValue
 	}
 
+	// Should supply enough intrinsic gas
+	var contractCreation = tx.To() == nil
+	if gas, err := core.IntrinsicGas(tx.Data(), contractCreation, pool.homestead); err != nil {
+		return err
+	} else if tx.Gas() < gas {
+		return core.ErrIntrinsicGas
+	}
+
+	if !contractCreation && len(tx.Data()) > 0 {
+		// TODO check token tx validate
+		return nil
+	}
+
 	// Transactor should have enough funds to cover the costs
 	// cost == V + GP * GL
 	if b := currentState.GetBalance(from); b.Cmp(tx.Cost()) < 0 {
 		return core.ErrInsufficientFunds
 	}
 
-	// Should supply enough intrinsic gas
-	gas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
-	if err != nil {
-		return err
-	}
-	if tx.Gas() < gas {
-		return core.ErrIntrinsicGas
-	}
 	return currentState.Error()
 }
 
@@ -434,7 +439,6 @@ func (self *TxPool) Add(ctx context.Context, tx *types.Transaction) error {
 	if err := self.add(ctx, tx); err != nil {
 		return err
 	}
-	//fmt.Println("Send", tx.Hash())
 	self.relay.Send(types.Transactions{tx})
 
 	self.chainDb.Put(tx.Hash().Bytes(), data)
@@ -506,7 +510,7 @@ func (self *TxPool) RemoveTransactions(txs types.Transactions) {
 	defer self.mu.Unlock()
 	var hashes []common.Hash
 	for _, tx := range txs {
-		//self.RemoveTx(tx.Hash())
+		// self.RemoveTx(tx.Hash())
 		hash := tx.Hash()
 		delete(self.pending, hash)
 		self.chainDb.Delete(hash[:])

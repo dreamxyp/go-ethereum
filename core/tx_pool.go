@@ -107,7 +107,7 @@ var (
 type TxStatus uint
 
 const (
-	TxStatusUnknown TxStatus = iota
+	TxStatusUnknown  TxStatus = iota
 	TxStatusQueued
 	TxStatusPending
 	TxStatusIncluded
@@ -184,33 +184,28 @@ func (config *TxPoolConfig) sanitize() TxPoolConfig {
 // current state) and future transactions. Transactions move between those
 // two states over time as they are received and processed.
 type TxPool struct {
-	config       TxPoolConfig
-	chainconfig  *params.ChainConfig
-	chain        blockChain
-	gasPrice     *big.Int
-	txFeed       event.Feed
-	scope        event.SubscriptionScope
-	chainHeadCh  chan ChainHeadEvent
-	chainHeadSub event.Subscription
-	signer       types.Signer
-	mu           sync.RWMutex
-
-	currentState  *state.StateDB      // Current state in the blockchain head
-	pendingState  *state.ManagedState // Pending state tracking virtual nonces
-	currentMaxGas uint64              // Current gas limit for transaction caps
-
-	locals  *accountSet // Set of local transaction to exempt from eviction rules
-	journal *txJournal  // Journal of local transaction to back up to disk
-
-	pending map[common.Address]*txList         // All currently processable transactions
-	queue   map[common.Address]*txList         // Queued but non-processable transactions
-	beats   map[common.Address]time.Time       // Last heartbeat from each known account
-	all     map[common.Hash]*types.Transaction // All transactions to allow lookups
-	priced  *txPricedList                      // All transactions sorted by price
-
-	wg sync.WaitGroup // for shutdown sync
-
-	homestead bool
+	config        TxPoolConfig
+	chainconfig   *params.ChainConfig
+	chain         blockChain
+	gasPrice      *big.Int
+	txFeed        event.Feed
+	scope         event.SubscriptionScope
+	chainHeadCh   chan ChainHeadEvent
+	chainHeadSub  event.Subscription
+	signer        types.Signer
+	mu            sync.RWMutex
+	currentState  *state.StateDB                     // Current state in the blockchain head
+	pendingState  *state.ManagedState                // Pending state tracking virtual nonces
+	currentMaxGas uint64                             // Current gas limit for transaction caps
+	locals        *accountSet                        // Set of local transaction to exempt from eviction rules
+	journal       *txJournal                         // Journal of local transaction to back up to disk
+	pending       map[common.Address]*txList         // All currently processable transactions
+	queue         map[common.Address]*txList         // Queued but non-processable transactions
+	beats         map[common.Address]time.Time       // Last heartbeat from each known account
+	all           map[common.Hash]*types.Transaction // All transactions to allow lookups
+	priced        *txPricedList                      // All transactions sorted by price
+	wg            sync.WaitGroup                     // for shutdown sync
+	homestead     bool
 }
 
 // NewTxPool creates a new transaction pool to gather, sort and filter inbound
@@ -293,11 +288,11 @@ func (pool *TxPool) loop() {
 
 				pool.mu.Unlock()
 			}
-		// Be unsubscribed due to system stopped
+			// Be unsubscribed due to system stopped
 		case <-pool.chainHeadSub.Err():
 			return
 
-		// Handle stats reporting ticks
+			// Handle stats reporting ticks
 		case <-report.C:
 			pool.mu.RLock()
 			pending, queued := pool.stats()
@@ -309,7 +304,7 @@ func (pool *TxPool) loop() {
 				prevPending, prevQueued, prevStales = pending, queued, stales
 			}
 
-		// Handle inactive account transaction eviction
+			// Handle inactive account transaction eviction
 		case <-evict.C:
 			pool.mu.Lock()
 			for addr := range pool.queue {
@@ -326,7 +321,7 @@ func (pool *TxPool) loop() {
 			}
 			pool.mu.Unlock()
 
-		// Handle local transaction journal rotation
+			// Handle local transaction journal rotation
 		case <-journal.C:
 			if pool.journal != nil {
 				pool.mu.Lock()
@@ -581,19 +576,39 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.currentState.GetNonce(from) > tx.Nonce() {
 		return ErrNonceTooLow
 	}
+
+	// Should supply enough intrinsic gas
+	var contractCreation = tx.To() == nil
+	if intrGas, err := IntrinsicGas(tx.Data(), contractCreation, pool.homestead); err != nil {
+		return err
+	} else if tx.Gas() < intrGas {
+		return ErrIntrinsicGas
+	}
+
+	if !contractCreation && len(tx.Data()) > 0 {
+		// TODO check token tx validate
+		return nil
+	}
+
 	// Transactor should have enough funds to cover the costs
 	// cost == V + GP * GL
 	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 		return ErrInsufficientFunds
 	}
-	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
-	if err != nil {
-		return err
-	}
-	if tx.Gas() < intrGas {
-		return ErrIntrinsicGas
-	}
+
 	return nil
+}
+
+// journalTx adds the specified transaction to the local disk journal if it is
+// deemed to have been sent from a local account.
+func (pool *TxPool) journalTx(from common.Address, tx *types.Transaction) {
+	// Only journal if it's enabled and the transaction is local
+	if pool.journal == nil || !pool.locals.contains(from) {
+		return
+	}
+	if err := pool.journal.insert(tx); err != nil {
+		log.Warn("Failed to journal local transaction", "err", err)
+	}
 }
 
 // add validates a transaction and inserts it into the non-executable queue for
@@ -698,18 +713,6 @@ func (pool *TxPool) enqueueTx(hash common.Hash, tx *types.Transaction) (bool, er
 	pool.all[hash] = tx
 	pool.priced.Put(tx)
 	return old != nil, nil
-}
-
-// journalTx adds the specified transaction to the local disk journal if it is
-// deemed to have been sent from a local account.
-func (pool *TxPool) journalTx(from common.Address, tx *types.Transaction) {
-	// Only journal if it's enabled and the transaction is local
-	if pool.journal == nil || !pool.locals.contains(from) {
-		return
-	}
-	if err := pool.journal.insert(tx); err != nil {
-		log.Warn("Failed to journal local transaction", "err", err)
-	}
 }
 
 // promoteTx adds a transaction to the pending (processable) list of transactions.
@@ -972,7 +975,7 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) {
 			}
 		}
 		// Gradually drop transactions from offenders
-		offenders := []common.Address{}
+		var offenders []common.Address
 		for pending > pool.config.GlobalSlots && !spammers.Empty() {
 			// Retrieve the next offender if not local address
 			offender, _ := spammers.Pop()

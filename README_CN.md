@@ -67,7 +67,7 @@ This command will:
    download more data in exchange for avoiding processing the entire history of the HappyUC network,
    which is very CPU intensive.
  * Start up Ghuc's built-in interactive [JavaScript console](https://github.com/happyuc-project/happyuc-go/wiki/JavaScript-Console),
-   (via the trailing `console` subcommand) through which you can invoke all official [`web3` methods](https://github.com/happyuc-project/wiki/wiki/JavaScript-API)
+   (via the trailing `console` subcommand) through which you can invoke all official [`webu` methods](https://github.com/happyuc-project/wiki/wiki/JavaScript-API)
    as well as Ghuc's own [management APIs](https://github.com/happyuc-project/happyuc-go/wiki/Management-APIs).
    This too is optional and if you leave it out you can always attach to an already running Ghuc instance
    with `ghuc attach`.
@@ -103,7 +103,7 @@ separate the two networks and will not make any accounts available between them.
 
 ### Full node on the Rinkeby test network
 
-The above test network is a cross client one based on the ethash proof-of-work consensus algorithm. As such, it has certain extra overhead and is more susceptible to reorganization attacks due to the network's low difficulty / security. Go HappyUC also supports connecting to a proof-of-authority based test network called [*Rinkeby*](https://www.rinkeby.io) (operated by members of the community). This network is lighter, more secure, but is only supported by happyuc-go.
+The above test network is a cross client one based on the huchash proof-of-work consensus algorithm. As such, it has certain extra overhead and is more susceptible to reorganization attacks due to the network's low difficulty / security. Go HappyUC also supports connecting to a proof-of-authority based test network called [*Rinkeby*](https://www.rinkeby.io) (operated by members of the community). This network is lighter, more secure, but is only supported by happyuc-go.
 
 ```
 $ ghuc --rinkeby console
@@ -131,7 +131,7 @@ One of the quickest ways to get HappyUC up and running on your machine is by usi
 
 ```
 docker run -d --name happyuc-node -v /Users/alice/happyuc:/root \
-           -p 8545:8545 -p 30303:30303 \ 
+           -p 8545:8545 -p 50505:50505 \
            happyuc/client-go
 ```
 
@@ -156,15 +156,15 @@ HTTP based JSON-RPC API options:
   * `--rpc` Enable the HTTP-RPC server
   * `--rpcaddr` HTTP-RPC server listening interface (default: "localhost")
   * `--rpcport` HTTP-RPC server listening port (default: 8545)
-  * `--rpcapi` API's offered over the HTTP-RPC interface (default: "eth,net,web3")
+  * `--rpcapi` API's offered over the HTTP-RPC interface (default: "huc,net,webu")
   * `--rpccorsdomain` Comma separated list of domains from which to accept cross origin requests (browser enforced)
   * `--ws` Enable the WS-RPC server
   * `--wsaddr` WS-RPC server listening interface (default: "localhost")
   * `--wsport` WS-RPC server listening port (default: 8546)
-  * `--wsapi` API's offered over the WS-RPC interface (default: "eth,net,web3")
+  * `--wsapi` API's offered over the WS-RPC interface (default: "huc,net,webu")
   * `--wsorigins` Origins from which to accept websockets requests
   * `--ipcdisable` Disable the IPC-RPC server
-  * `--ipcapi` API's offered over the IPC-RPC interface (default: "admin,debug,eth,miner,net,personal,shh,txpool,web3")
+  * `--ipcapi` API's offered over the IPC-RPC interface (default: "admin,debug,huc,miner,net,personal,shh,txpool,webu")
   * `--ipcpath` Filename for IPC socket/pipe within the datadir (explicit paths escape it)
 
 You'll need to use your own programming environments' capabilities (libraries, tools, etc) to connect
@@ -260,7 +260,7 @@ need to configure a miner to process transactions and create new blocks for you.
 #### Running a private miner
 
 Mining on the public HappyUC network is a complex task as it's only feasible using GPUs, requiring
-an OpenCL or CUDA enabled `ethminer` instance. For information on such a setup, please consult the
+an OpenCL or CUDA enabled `hucminer` instance. For information on such a setup, please consult the
 [EtherMining subreddit](https://www.reddit.com/r/EtherMining/) and the [Genoil miner](https://github.com/Genoil/happyuc-cpp)
 repository.
 
@@ -295,7 +295,7 @@ Please make sure your contributions adhere to our coding guidelines:
  * Code must be documented adhering to the official Go [commentary](https://golang.org/doc/effective_go.html#commentary) guidelines.
  * Pull requests need to be based on and opened against the `master` branch.
  * Commit messages should be prefixed with the package(s) they modify.
-   * E.g. "eth, rpc: make trace configs optional"
+   * E.g. "huc, rpc: make trace configs optional"
 
 Please see the [Developers' Guide](https://github.com/happyuc-project/happyuc-go/wiki/Developers'-Guide)
 for more details on configuring your environment, managing project dependencies and testing procedures.

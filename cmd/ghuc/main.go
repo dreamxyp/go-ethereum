@@ -28,7 +28,6 @@ import (
 	"github.com/happyuc-project/happyuc-go/accounts"
 	"github.com/happyuc-project/happyuc-go/accounts/keystore"
 	"github.com/happyuc-project/happyuc-go/cmd/utils"
-	"github.com/happyuc-project/happyuc-go/common"
 	"github.com/happyuc-project/happyuc-go/console"
 	"github.com/happyuc-project/happyuc-go/huc"
 	"github.com/happyuc-project/happyuc-go/hucclient"
@@ -37,6 +36,7 @@ import (
 	"github.com/happyuc-project/happyuc-go/metrics"
 	"github.com/happyuc-project/happyuc-go/node"
 	"gopkg.in/urfave/cli.v1"
+	"github.com/happyuc-project/happyuc-go/common"
 )
 
 const (
@@ -66,12 +66,12 @@ var (
 		utils.DashboardPortFlag,
 		utils.DashboardRefreshFlag,
 		utils.DashboardAssetsFlag,
-		utils.EthashCacheDirFlag,
-		utils.EthashCachesInMemoryFlag,
-		utils.EthashCachesOnDiskFlag,
-		utils.EthashDatasetDirFlag,
-		utils.EthashDatasetsInMemoryFlag,
-		utils.EthashDatasetsOnDiskFlag,
+		utils.HuchashCacheDirFlag,
+		utils.HuchashCachesInMemoryFlag,
+		utils.HuchashCachesOnDiskFlag,
+		utils.HuchashDatasetDirFlag,
+		utils.HuchashDatasetsInMemoryFlag,
+		utils.HuchashDatasetsOnDiskFlag,
 		utils.TxPoolNoLocalsFlag,
 		utils.TxPoolJournalFlag,
 		utils.TxPoolRejournalFlag,
@@ -150,7 +150,7 @@ func init() {
 	// Initialize the CLI app and start Ghuc
 	app.Action = ghuc
 	app.HideVersion = true // we have a command to print the version
-	app.Copyright = "Copyright 2013-2017 The happyuc-go Authors"
+	app.Copyright = "Copyright 2018 The happyuc-go Authors"
 	app.Commands = []cli.Command{
 		// See chaincmd.go:
 		initCommand,

@@ -32,7 +32,7 @@ var emptyCodeHash = crypto.Keccak256(nil)
 type Code []byte
 
 func (self Code) String() string {
-	return string(self) //strings.Join(Disassemble(self), " ")
+	return string(self) // strings.Join(Disassemble(self), " ")
 }
 
 type Storage map[common.Hash]common.Hash
@@ -258,7 +258,6 @@ func (c *stateObject) AddBalance(amount *big.Int) {
 		if c.empty() {
 			c.touch()
 		}
-
 		return
 	}
 	c.SetBalance(new(big.Int).Add(c.Balance(), amount))

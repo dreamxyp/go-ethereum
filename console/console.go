@@ -24,12 +24,11 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"syscall"
 
 	"github.com/happyuc-project/happyuc-go/internal/jsre"
-	"github.com/happyuc-project/happyuc-go/internal/web3ext"
+	"github.com/happyuc-project/happyuc-go/internal/webuext"
 	"github.com/happyuc-project/happyuc-go/rpc"
 	"github.com/mattn/go-colorable"
 	"github.com/peterh/liner"
@@ -99,6 +98,7 @@ func New(config Config) (*Console, error) {
 	if err := console.init(config.Preload); err != nil {
 		return nil, err
 	}
+
 	return console, nil
 }
 
@@ -107,11 +107,11 @@ func New(config Config) (*Console, error) {
 func (c *Console) init(preload []string) error {
 	// Initialize the JavaScript <-> Go RPC bridge
 	bridge := newBridge(c.client, c.prompter, c.printer)
-	c.jsre.Set("jeth", struct{}{})
+	c.jsre.Set("jhuc", struct{}{})
 
-	jethObj, _ := c.jsre.Get("jeth")
-	jethObj.Object().Set("send", bridge.Send)
-	jethObj.Object().Set("sendAsync", bridge.Send)
+	jhucObj, _ := c.jsre.Get("jhuc")
+	jhucObj.Object().Set("send", bridge.Send)
+	jhucObj.Object().Set("sendAsync", bridge.Send)
 
 	consoleObj, _ := c.jsre.Get("console")
 	consoleObj.Object().Set("log", c.consoleOutput)
@@ -121,41 +121,46 @@ func (c *Console) init(preload []string) error {
 	if err := c.jsre.Compile("bignumber.js", jsre.BigNumber_JS); err != nil {
 		return fmt.Errorf("bignumber.js: %v", err)
 	}
-	if err := c.jsre.Compile("web3.js", jsre.Web3_JS); err != nil {
-		return fmt.Errorf("web3.js: %v", err)
+
+	if err := c.jsre.Compile("webu.js", jsre.Webu_JS); err != nil {
+		return fmt.Errorf("webu.js: %v", err)
 	}
-	if _, err := c.jsre.Run("var Web3 = require('web3');"); err != nil {
-		return fmt.Errorf("web3 require: %v", err)
+
+	if _, err := c.jsre.Run("var Webu = require('webu');"); err != nil {
+		return fmt.Errorf("webu require: %v", err)
 	}
-	if _, err := c.jsre.Run("var web3 = new Web3(jeth);"); err != nil {
-		return fmt.Errorf("web3 provider: %v", err)
+
+	if _, err := c.jsre.Run("var webu = new Webu(jhuc);"); err != nil {
+		return fmt.Errorf("webu provider: %v", err)
 	}
+
 	// Load the supported APIs into the JavaScript runtime environment
 	apis, err := c.client.SupportedModules()
 	if err != nil {
 		return fmt.Errorf("api modules: %v", err)
 	}
-	flatten := "var eth = web3.eth; var personal = web3.personal; "
+
+	flatten := "var huc = webu.huc; var personal = webu.personal; "
 	for api := range apis {
-		if api == "web3" {
+		if api == "webu" {
 			continue // manually mapped or ignore
 		}
-		if file, ok := web3ext.Modules[api]; ok {
+		if file, ok := webuext.Modules[api]; ok {
 			// Load our extension for the module.
 			if err = c.jsre.Compile(fmt.Sprintf("%s.js", api), file); err != nil {
 				return fmt.Errorf("%s.js: %v", api, err)
 			}
-			flatten += fmt.Sprintf("var %s = web3.%s; ", api, api)
-		} else if obj, err := c.jsre.Run("web3." + api); err == nil && obj.IsObject() {
-			// Enable web3.js built-in extension if available.
-			flatten += fmt.Sprintf("var %s = web3.%s; ", api, api)
+			flatten += fmt.Sprintf("var %s = webu.%s; ", api, api)
+		} else if obj, err := c.jsre.Run("webu." + api); err == nil && obj.IsObject() {
+			// Enable webu.js built-in extension if available.
+			flatten += fmt.Sprintf("var %s = webu.%s; ", api, api)
 		}
 	}
 	if _, err = c.jsre.Run(flatten); err != nil {
 		return fmt.Errorf("namespace flattening: %v", err)
 	}
 	// Initialize the global name register (disabled for now)
-	//c.jsre.Run(`var GlobalRegistrar = eth.contract(` + registrar.GlobalRegistrarAbi + `);   registrar = GlobalRegistrar.at("` + registrar.GlobalRegistrarAddr + `");`)
+	//c.jsre.Run(`var GlobalRegistrar = huc.contract(` + registrar.GlobalRegistrarAbi + `);   registrar = GlobalRegistrar.at("` + registrar.GlobalRegistrarAddr + `");`)
 
 	// If the console is in interactive mode, instrument password related methods to query the user
 	if c.prompter != nil {
@@ -166,20 +171,20 @@ func (c *Console) init(preload []string) error {
 		}
 		// Override the openWallet, unlockAccount, newAccount and sign methods since
 		// these require user interaction. Assign these method in the Console the
-		// original web3 callbacks. These will be called by the jeth.* methods after
-		// they got the password from the user and send the original web3 request to
+		// original webu callbacks. These will be called by the jhuc.* methods after
+		// they got the password from the user and send the original webu request to
 		// the backend.
 		if obj := personal.Object(); obj != nil { // make sure the personal api is enabled over the interface
-			if _, err = c.jsre.Run(`jeth.openWallet = personal.openWallet;`); err != nil {
+			if _, err = c.jsre.Run(`jhuc.openWallet = personal.openWallet;`); err != nil {
 				return fmt.Errorf("personal.openWallet: %v", err)
 			}
-			if _, err = c.jsre.Run(`jeth.unlockAccount = personal.unlockAccount;`); err != nil {
+			if _, err = c.jsre.Run(`jhuc.unlockAccount = personal.unlockAccount;`); err != nil {
 				return fmt.Errorf("personal.unlockAccount: %v", err)
 			}
-			if _, err = c.jsre.Run(`jeth.newAccount = personal.newAccount;`); err != nil {
+			if _, err = c.jsre.Run(`jhuc.newAccount = personal.newAccount;`); err != nil {
 				return fmt.Errorf("personal.newAccount: %v", err)
 			}
-			if _, err = c.jsre.Run(`jeth.sign = personal.sign;`); err != nil {
+			if _, err = c.jsre.Run(`jhuc.sign = personal.sign;`); err != nil {
 				return fmt.Errorf("personal.sign: %v", err)
 			}
 			obj.Set("openWallet", bridge.OpenWallet)
@@ -250,15 +255,15 @@ func (c *Console) AutoCompleteInput(line string, pos int) (string, []string, str
 		return "", nil, ""
 	}
 	// Chunck data to relevant part for autocompletion
-	// E.g. in case of nested lines eth.getBalance(eth.coinb<tab><tab>
+	// E.g. in case of nested lines huc.getBalance(huc.coinb<tab><tab>
 	start := pos - 1
 	for ; start > 0; start-- {
 		// Skip all methods and namespaces (i.e. including the dot)
 		if line[start] == '.' || (line[start] >= 'a' && line[start] <= 'z') || (line[start] >= 'A' && line[start] <= 'Z') {
 			continue
 		}
-		// Handle web3 in a special way (i.e. other numbers aren't auto completed)
-		if start >= 3 && line[start-3:start] == "web3" {
+		// Handle webu in a special way (i.e. other numbers aren't auto completed)
+		if start >= 3 && line[start-3:start] == "webu" {
 			start -= 3
 			continue
 		}
@@ -273,22 +278,22 @@ func (c *Console) AutoCompleteInput(line string, pos int) (string, []string, str
 // console's available modules.
 func (c *Console) Welcome() {
 	// Print some generic Ghuc metadata
-	fmt.Fprint(c.printer, "Welcome to the Ghuc JavaScript console!\n\n")
+	fmt.Fprint(c.printer, "Welcome to the Ghuc JavaScript console(webu.js)!\n\n")
 	c.jsre.Run(`
-		console.log("instance: " + web3.version.node);
-		console.log("coinbase: " + eth.coinbase);
-		console.log("at block: " + eth.blockNumber + " (" + new Date(1000 * eth.getBlock(eth.blockNumber).timestamp) + ")");
-		console.log(" datadir: " + admin.datadir);
+		console.log("Instance: " + webu.version.node);
+		console.log("Coinbase: " + huc.coinbase);
+		console.log("At block: " + huc.blockNumber + " (" + new Date(1000 * huc.getBlock(huc.blockNumber).timestamp) + ")");
+		console.log("Datadir : " + admin.datadir);
 	`)
 	// List all the supported modules for the user to call
-	if apis, err := c.client.SupportedModules(); err == nil {
-		modules := make([]string, 0, len(apis))
-		for api, version := range apis {
-			modules = append(modules, fmt.Sprintf("%s:%s", api, version))
-		}
-		sort.Strings(modules)
-		fmt.Fprintln(c.printer, " modules:", strings.Join(modules, " "))
-	}
+	// if apis, err := c.client.SupportedModules(); err == nil {
+	// 	modules := make([]string, 0, len(apis))
+	// 	for api, version := range apis {
+	// 		modules = append(modules, fmt.Sprintf("%s:%s", api, version))
+	// 	}
+	// 	sort.Strings(modules)
+	// 	fmt.Fprintln(c.printer, " modules:", strings.Join(modules, " "))
+	// }
 	fmt.Fprintln(c.printer)
 }
 
